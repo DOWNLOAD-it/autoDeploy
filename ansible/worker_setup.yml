@@ -1,0 +1,41 @@
+---
+- name: Configure K8s Worker Node
+  hosts: workers
+  become: yes
+  gather_facts: yes
+
+  vars:
+    # IMPORTANT: Replace these with the actual values from your Master
+    k3s_token: "K10b0b55535a87483816db45b8562db529f47484f67d55383cf266e3c3649df64cf::server:3b75a42cabee370c24384e5abc248384"
+    k3s_master_ip: "172.31.32.84"
+
+  tasks:
+    # 1. CLEANUP & PREP
+    - name: Clean apt cache to ensure space
+      apt:
+        update_cache: yes
+        autoclean: yes
+        autoremove: yes
+
+    - name: Install dependencies
+      apt:
+        name: [curl, docker.io]
+        state: present
+
+    # 2. JOIN THE CLUSTER
+    - name: Join K3s Cluster as Worker
+      shell: |
+        curl -sfL https://get.k3s.io | K3S_URL=https://{{ k3s_master_ip }}:6443 \
+        K3S_TOKEN={{ k3s_token }} sh -
+      args:
+        creates: /usr/local/bin/k3s-agent
+
+    # 3. CONFIGURE RUNTIME
+    - name: Ensure Docker and K3s-Agent are running
+      service:
+        name: "{{ item }}"
+        state: started
+        enabled: yes
+      loop:
+        - docker
+        - k3s-agent

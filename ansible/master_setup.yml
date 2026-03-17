@@ -1,0 +1,18 @@
+---
+- name: Configure K8s Master Node (Local)
+  hosts: master
+  become: yes
+  tasks:
+    - name: Install K3s Server
+      shell: |
+        curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--write-kubeconfig-mode 644 --disable traefik" sh -
+      args:
+        creates: /usr/local/bin/k3s
+
+    - name: Get K3s Node Token
+      command: cat /var/lib/rancher/k3s/server/node-token
+      register: node_token
+
+    - name: Show Token (Save this for the Worker!)
+      debug:
+        msg: "Your K3s Token is: {{ node_token.stdout }}"
